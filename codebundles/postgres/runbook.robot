@@ -36,7 +36,7 @@ Get Long Running Queries
     ...    secret_file__kubeconfig=${kubeconfig}
     ...    secret__PGPASSWORD=${PGPASSWORD}
 
-    RW.Core.Add Pre To Report    ${stdout}
+    RW.Core.Add Pre To Report    ${stdout.stdout}
 
 *** Keywords ***
 Suite Initialization
