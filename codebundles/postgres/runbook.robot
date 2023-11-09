@@ -21,7 +21,7 @@ Get Long Running Queries
     ...    include_in_history=false
     ...    secret_file__kubeconfig=${kubeconfig}
 
-    ${query}=    Set Variable    SELECT pid,user,pg_stat_activity.query_start,now() - pg_stat_activity.query_start AS query_time,query,state,wait_event_type,wait_event FROM pg_stat_activity WHERE (now() - pg_stat_activity.query_start) > interval '\\''${TIME_INTERVAL} milliseconds'\\'';
+    ${query}=    Set Variable     SELECT pid,user,pg_stat_activity.query_start,now() - pg_stat_activity.query_start AS query_time,query,state,wait_event_type,wait_event FROM pg_stat_activity WHERE (now() - pg_stat_activity.query_start) > interval '\\''${TIME_INTERVAL} milliseconds'\\'';
     ${get_master_pod}=    RW.CLI.Run Cli
     ...    cmd=${master_pod_command}
     ...    env=${env}
@@ -29,17 +29,17 @@ Get Long Running Queries
     ...    secret_file__kubeconfig=${kubeconfig}
     ${master_pod_name}=    Convert To String    ${get_master_pod.stdout}
     ${master_pod_name}=    Strip String     \n${master_pod_name}\n  mode=both 
-    ${cmd}=    Set Variable    kubectl exec -n postgres-database --context ${CONTEXT} ${master_pod_name} -- psql -U postgres -d ${DATABASE} -c '${query}'
+    ${cmd}=    Set Variable    kubectl exec -n postgres-database --context ${CONTEXT} ${master_pod_name} -- psql -U postgres -d ${DATABASE} -c '\\x' -c '${query}'
     
     ${stdout}=    RW.CLI.Run Cli
     ...    cmd=${cmd}
     ...    env=${env}
     ...    render_in_commandlist=true
-    ...    include_in_history=false
+    ...    include_in_history=true
     ...    secret_file__kubeconfig=${kubeconfig}
 
-    # ${commands_used}=    RW.CLI.Pop Shell History
-
+    ${commands_used}=    RW.CLI.Pop Shell History
+    RW.Core.Add Pre To Report    Commands Used \n ${commands_used}
     RW.Core.Add Pre To Report    ${stdout.stdout}
 
 *** Keywords ***
@@ -113,4 +113,4 @@ Suite Initialization
     Set Suite Variable    ${DATABASE}    ${DATABASE}
     Set Suite Variable
     ...    ${env}
-    ...    {"KUBECONFIG":"./${kubeconfig.key}", "KUBERNETES_DISTRIBUTION_BINARY":"${KUBERNETES_DISTRIBUTION_BINARY}", "CONTEXT":"${CONTEXT}", "NAMESPACE":"${NAMESPACE}", "HOME":"${HOME}", "TIME_INTERVAL":"${TIME_INTERVAL}", "PGUSER":"${PGUSER}"}
+    ...    {"KUBECONFIG":"${kubeconfig.key}", "KUBERNETES_DISTRIBUTION_BINARY":"${KUBERNETES_DISTRIBUTION_BINARY}", "CONTEXT":"${CONTEXT}", "NAMESPACE":"${NAMESPACE}", "HOME":"${HOME}", "TIME_INTERVAL":"${TIME_INTERVAL}", "PGUSER":"${PGUSER}"}
