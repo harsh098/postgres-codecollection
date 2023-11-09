@@ -6,6 +6,7 @@ Metadata    Display Name    Postgres Slowquery Inspection
 Metadata    Supports    Kubernetes,AKS,EKS,GKE,OpenShift,Postgres,Zalando
 Library    RW.Core
 Library    RW.CLI
+Library    String
 
 Suite Setup    Suite Initialization
 
@@ -20,13 +21,15 @@ Get Long Running Queries
     ...    include_in_history=false
     ...    secret_file__kubeconfig=${kubeconfig}
 
-    ${query}=    Set Variable    SELECT pid,user,pg_stat_activity.query_start,now() - pg_stat_activity.query_start AS query_time,query,state,wait_event_type,wait_event FROM pg_stat_activity WHERE (now() - pg_stat_activity.query_start) > interval '${TIME_INTERVAL} milliseconds';
+    ${query}=    Set Variable    SELECT pid,user,pg_stat_activity.query_start,now() - pg_stat_activity.query_start AS query_time,query,state,wait_event_type,wait_event FROM pg_stat_activity WHERE (now() - pg_stat_activity.query_start) > interval '\\''${TIME_INTERVAL} milliseconds'\\'';
     ${get_master_pod}=    RW.CLI.Run Cli
     ...    cmd=${master_pod_command}
     ...    env=${env}
     ...    include_in_history=false
     ...    secret_file__kubeconfig=${kubeconfig}
-    ${cmd}=    Set Variable    kubectl exec -n postgres-database --context ${CONTEXT} ${get_master_pod.stdout} -- psql -U postgres -c '${query}' > /tmp/psqlout && cat /tmp/psqlout
+    ${master_pod_name}=    Convert To String    ${get_master_pod.stdout}
+    ${master_pod_name}=    Strip String     \n${master_pod_name}\n  mode=both 
+    ${cmd}=    Set Variable    kubectl exec -n postgres-database --context ${CONTEXT} ${master_pod_name} -- psql -U postgres -d ${DATABASE} -c '${query}'
     
     ${stdout}=    RW.CLI.Run Cli
     ...    cmd=${cmd}
@@ -34,7 +37,8 @@ Get Long Running Queries
     ...    render_in_commandlist=true
     ...    include_in_history=false
     ...    secret_file__kubeconfig=${kubeconfig}
-    ...    secret__PGPASSWORD=${PGPASSWORD}
+
+    # ${commands_used}=    RW.CLI.Pop Shell History
 
     RW.Core.Add Pre To Report    ${stdout.stdout}
 
@@ -87,11 +91,6 @@ Suite Initialization
     ...    example=postgres
     ...    default=foo
     
-    ${PGPASSWORD}=    RW.Core.Import Secret
-    ...    varname=PGPASSWORD
-    ...    description=password for database user
-    ...    pattern=\w*
-    
     ${PGUSER}=    RW.Core.Import User Variable    PGUSER
     ...    type=string
     ...    description=database user
@@ -110,7 +109,8 @@ Suite Initialization
     Set Suite Variable    ${TIME_INTERVAL}    ${TIME_INTERVAL}
     Set Suite Variable    ${CLUSTER_NAME_POSTGRES}   ${CLUSTER_NAME_POSTGRES}
     Set Suite Variable    ${PGUSER}    ${PGUSER}
-    Set Suite Variable    ${PGPASSWORD}    ${PGPASSWORD}
+    # Set Suite Variable    ${PGPASSWORD}    ${PGPASSWORD}
+    Set Suite Variable    ${DATABASE}    ${DATABASE}
     Set Suite Variable
     ...    ${env}
-    ...    {"KUBECONFIG":"./${kubeconfig.key}", "KUBERNETES_DISTRIBUTION_BINARY":"${KUBERNETES_DISTRIBUTION_BINARY}", "CONTEXT":"${CONTEXT}", "NAMESPACE":"${NAMESPACE}", "HOME":"${HOME}", "TIME_INTERVAL":"${TIME_INTERVAL}", "PGUSER":"${PGUSER}", "PGPASSWORD":"${PGPASSWORD.key}"}
+    ...    {"KUBECONFIG":"/app/auth/kubeconfig", "KUBERNETES_DISTRIBUTION_BINARY":"${KUBERNETES_DISTRIBUTION_BINARY}", "CONTEXT":"${CONTEXT}", "NAMESPACE":"${NAMESPACE}", "HOME":"${HOME}", "TIME_INTERVAL":"${TIME_INTERVAL}", "PGUSER":"${PGUSER}"}
