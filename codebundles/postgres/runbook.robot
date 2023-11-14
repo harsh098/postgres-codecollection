@@ -29,7 +29,7 @@ Get Long Running Queries
     ...    secret_file__kubeconfig=${kubeconfig}
     ${master_pod_name}=    Convert To String    ${get_master_pod.stdout}
     ${master_pod_name}=    Strip String     \n${master_pod_name}\n  mode=both 
-    ${cmd}=    Set Variable    kubectl exec -n postgres-database --context ${CONTEXT} ${master_pod_name} -- psql -U postgres -d ${DATABASE} -c '\\x' -c '${query}'> /tmp/psqlout && cat /tmp/psqlout
+    ${cmd}=    Set Variable    kubectl exec -n postgres-database --context ${CONTEXT} ${master_pod_name} -- psql -U ${PGUSER} -d ${DATABASE} -c '\\x' -c '${query}'> /tmp/psqlout && cat /tmp/psqlout
     
     ${stdout}=    RW.CLI.Run Cli
     ...    cmd=${cmd}
@@ -113,4 +113,4 @@ Suite Initialization
     Set Suite Variable    ${DATABASE}    ${DATABASE}
     Set Suite Variable
     ...    ${env}
-    ...    {"KUBECONFIG":"./${kubeconfig.key}", "KUBERNETES_DISTRIBUTION_BINARY":"${KUBERNETES_DISTRIBUTION_BINARY}", "CONTEXT":"${CONTEXT}", "NAMESPACE":"${NAMESPACE}", "HOME":"${HOME}", "TIME_INTERVAL":"${TIME_INTERVAL}", "PGUSER":"${PGUSER}", "CLUSTER_NAME_POSTGRES": "${CLUSTER_NAME_POSTGRES}"}
+    ...    {"KUBECONFIG":"./${kubeconfig.key}", "KUBERNETES_DISTRIBUTION_BINARY":"${KUBERNETES_DISTRIBUTION_BINARY}", "CONTEXT":"${CONTEXT}", "NAMESPACE":"${NAMESPACE}", "HOME":"${HOME}", "TIME_INTERVAL":"${TIME_INTERVAL}", "PGUSER":"${PGUSER}", "CLUSTER_NAME_POSTGRES": "${CLUSTER_NAME_POSTGRES}", "DATABASE": "${DATABASE}"}
