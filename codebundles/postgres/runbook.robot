@@ -14,22 +14,8 @@ Suite Setup    Suite Initialization
 Get Long Running Queries
     [Documentation]    Fetches list of long running queries on Postgres Clusters
     [Tags]    postgres query inspection slowquery zalando
-    ${master_pod_command}=    Set Variable    ${KUBERNETES_DISTRIBUTION_BINARY} get pods -n ${NAMESPACE} --no-headers -l spilo-role=master,cluster-name=${CLUSTER_NAME_POSTGRES} 2> /dev/null | awk '{print $1};' | head -n 1
-    ${master_pod_name}=    RW.CLI.Run Cli
-    ...    cmd=${master_pod_command}
-    ...    env=${env}
-    ...    include_in_history=false
-    ...    secret_file__kubeconfig=${kubeconfig}
-
-    ${query}=    Set Variable     SELECT pid,user,pg_stat_activity.query_start,now() - pg_stat_activity.query_start AS query_time,query,state,wait_event_type,wait_event FROM pg_stat_activity WHERE (now() - pg_stat_activity.query_start) > interval '\\''${TIME_INTERVAL} milliseconds'\\'';
-    ${get_master_pod}=    RW.CLI.Run Cli
-    ...    cmd=${master_pod_command}
-    ...    env=${env}
-    ...    include_in_history=false
-    ...    secret_file__kubeconfig=${kubeconfig}
-    ${master_pod_name}=    Convert To String    ${get_master_pod.stdout}
-    ${master_pod_name}=    Strip String     \n${master_pod_name}\n  mode=both 
-    ${cmd}=    Set Variable    kubectl exec -n postgres-database --context ${CONTEXT} ${master_pod_name} -- psql -U ${PGUSER} -d ${DATABASE} -c '\\x' -c '${query}'> /tmp/psqlout && cat /tmp/psqlout
+    ${query}=    Set Variable    SELECT pid,user,pg_stat_activity.query_start,now() - pg_stat_activity.query_start AS query_time,query,state,wait_event_type,wait_event FROM pg_stat_activity WHERE (now() - pg_stat_activity.query_start) > interval '\\''${TIME_INTERVAL} milliseconds'\\'';
+    ${cmd}=    Set Variable    for pod in $(${KUBERNETES_DISTRIBUTION_BINARY} get pods -n ${NAMESPACE} --no-headers -l cluster-name=${CLUSTER_NAME_POSTGRES} 2> /dev/null | awk '{print $1};') ;do echo -e \"Query Statistics for Pod: $pod \\n\" && kubectl exec -n postgres-database --context ${CONTEXT} $pod -- psql -U ${PGUSER} -d ${DATABASE} -c '\\x' -c '${query}'> /tmp/psqlout && cat /tmp/psqlout; done
     
     ${stdout}=    RW.CLI.Run Cli
     ...    cmd=${cmd}
@@ -83,6 +69,7 @@ Suite Initialization
     ...    description=The Postgres Cluster name or the name of cluster as defined in Zalando Manifests. For example, https://docs.runwhen.com/public/runwhen-authors/sandbox-resources/postgres-operator-and-test-database
     ...    pattern=\w*
     ...    example=acid-minimal-cluster
+    ...    default=acid-minimal-cluster
     
     ${DATABASE}=    RW.Core.Import User Variable    DATABASE 
     ...    type=string
