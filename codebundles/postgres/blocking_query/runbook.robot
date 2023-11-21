@@ -11,8 +11,8 @@ Library    String
 Suite Setup    Suite Initialization
 
 *** Tasks ***
-Get Long Running Queries
-    [Documentation]    Fetches list of long running queries on Postgres Clusters
+Get Blocked Queries in Postgres Cluster
+    [Documentation]    Fetches list of blocked queries on Postgres Clusters
     [Tags]    postgres query inspection slowquery zalando
     ${query}=    Set Variable    SELECT activity.pid,activity.usename,activity.query,blocking.pid AS blocking_id,blocking.query AS blocking_query FROM pg_stat_activity AS activity JOIN pg_stat_activity AS blocking ON blocking.pid\=ANY(pg_blocking_pids(activity.pid));
     ${cmd}=    Set Variable    for pod in $(${KUBERNETES_DISTRIBUTION_BINARY} get pods -n ${NAMESPACE} --no-headers -l cluster-name=${CLUSTER_NAME_POSTGRES} 2> /dev/null | awk '{print $1};') ;do echo -e \"Query Statistics for Pod: $pod \\n\" && kubectl exec -n postgres-database --context ${CONTEXT} $pod -- psql -U ${PGUSER} -d ${DATABASE} -c '\\x' -c '${query}'> /tmp/psqlout && cat /tmp/psqlout; done
