@@ -30,7 +30,7 @@ Get Blocked Queries in Postgres Cluster
     ${mitigation_query}=    Set Variable    SELECT pg_cancel_backend(activity.pid) FROM pg_stat_activity AS activity JOIN pg_stat_activity AS blocking ON blocking.pid\=ANY(pg_blocking_pids(activity.pid));
     ${mitigation_commands}=    Set Variable    for pod in $(${KUBERNETES_DISTRIBUTION_BINARY} get pods -n ${NAMESPACE} --no-headers -l cluster-name=${CLUSTER_NAME_POSTGRES} 2> /dev/null | awk '{print $1};') ;do kubectl exec -n postgres-database --context ${CONTEXT} $pod -- psql -U ${PGUSER} -d ${DATABASE} -c '${query}'> /tmp/psqlout && cat /tmp/psqlout; done
     
-    ${suggestions}=    Set Variable    \#\# Mitigations\n- **To Terminate Specific backends** \n``SELECT pg_cancel_backend(<pid of the process>)``\n- **To Terminate All Blocked backends**\n``${mitigation_commands}``
+    ${suggestions}=    Set Variable    \#\# Mitigations\n- **To Terminate Specific backends** \\\n``SELECT pg_cancel_backend(<pid of the process>)``\\\n- **To Terminate All Blocked backends**\\\n``${mitigation_commands}``
 
     RW.Core.Add To Report
     ...    obj=${suggestions}
