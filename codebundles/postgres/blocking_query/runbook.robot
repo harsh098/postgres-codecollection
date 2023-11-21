@@ -27,7 +27,12 @@ Get Long Running Queries
     ${commands_used}=    RW.CLI.Pop Shell History
     RW.Core.Add Pre To Report    Commands Used \n ${commands_used}
     RW.Core.Add Pre To Report    ${stdout.stdout}
+    ${mitigation_query}=    Set Variable    SELECT pg_cancel_backend(activity.pid) FROM pg_stat_activity AS activity JOIN pg_stat_activity AS blocking ON blocking.pid\=ANY(pg_blocking_pids(activity.pid));
+    ${mitigation_commands}=    Set Variable    for pod in $(${KUBERNETES_DISTRIBUTION_BINARY} get pods -n ${NAMESPACE} --no-headers -l cluster-name=${CLUSTER_NAME_POSTGRES} 2> /dev/null | awk '{print $1};') ;do kubectl exec -n postgres-database --context ${CONTEXT} $pod -- psql -U ${PGUSER} -d ${DATABASE} -c '${query}'> /tmp/psqlout && cat /tmp/psqlout; done
     
+    RW.Core.Add To Report
+    ...    obj= <h1>Mitigation Commands</h1> <br> <b>Use these commands to gracefully terminate blocking backends: <br> <pre> ${mitigation_commands} <pre> <br>
+
 *** Keywords ***
 Suite Initialization
     ${kubeconfig}=    RW.Core.Import Secret
