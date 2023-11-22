@@ -1,7 +1,7 @@
 *** Settings ***
 Metadata    Author    Harsh Mishra
 Documentation    Checks for Long runnning queries in Postgres Clusters within Kubernetes
-Force Tags    Postgres  Kubernetes  Zalando
+Force Tags    Postgres  Kubernetes  Zalando  Patroni
 Metadata    Display Name    Postgres Slowquery Inspection
 Metadata    Supports    Kubernetes,AKS,EKS,GKE,OpenShift,Postgres,Zalando
 Library    RW.Core
@@ -13,7 +13,7 @@ Suite Setup    Suite Initialization
 *** Tasks ***
 Get Long Running Queries
     [Documentation]    Fetches list of long running queries on Postgres Clusters
-    [Tags]    postgres query inspection slowquery zalando
+    [Tags]    postgres query inspection slowquery zalando patroni
     ${query}=    Set Variable    SELECT pid,user,pg_stat_activity.query_start,now() - pg_stat_activity.query_start AS query_time,query,state,wait_event_type,wait_event FROM pg_stat_activity WHERE (now() - pg_stat_activity.query_start) > interval '\\''${TIME_INTERVAL} milliseconds'\\'';
     ${cmd}=    Set Variable    for pod in $(${KUBERNETES_DISTRIBUTION_BINARY} get pods -n ${NAMESPACE} --no-headers -l cluster-name=${CLUSTER_NAME_POSTGRES} 2> /dev/null | awk '{print $1};') ;do echo -e \"Query Statistics for Pod: $pod \\n\" && kubectl exec -n postgres-database --context ${CONTEXT} $pod -- psql -U ${PGUSER} -d ${DATABASE} -c '\\x' -c '${query}'> /tmp/psqlout && cat /tmp/psqlout; done
     
